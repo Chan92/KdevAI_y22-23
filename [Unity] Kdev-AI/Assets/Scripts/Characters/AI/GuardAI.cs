@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 using static UnityEngine.GraphicsBuffer;
 
 public class GuardAI : MonoBehaviour {
@@ -11,7 +13,7 @@ public class GuardAI : MonoBehaviour {
 	[SerializeField]
 	private Transform weapon;
 	[SerializeField]
-	private float anyOffset = 0.3f;
+	private float generalOffset = 0.3f;
 
 	[Header("Detect")]
 	[SerializeField]
@@ -33,7 +35,11 @@ public class GuardAI : MonoBehaviour {
 	[SerializeField]
 	private float attackStrength = 10f;
 
-	private int wayPointId;
+	[Header("Other")]
+	[SerializeField]
+	private TMP_Text statusUiText;
+
+    private int wayPointId;
 	private BtNode tree;
 	private Blackboard blackBoard;
 
@@ -45,60 +51,62 @@ public class GuardAI : MonoBehaviour {
 	private void SetData() {
 		blackBoard = new Blackboard();
 
-		blackBoard.SetData<Transform>("ThisTransform", transform);
-		blackBoard.SetData<Transform>("Player", player);
-		blackBoard.SetData<Transform>("Weapon", weapon);
+		blackBoard.SetData<Transform>(StringNames.Transform_BBowner, transform);
+		blackBoard.SetData<Transform>(StringNames.Transform_Player, player);
+		blackBoard.SetData<Transform>(StringNames.Transform_Item_Weapon, weapon);
 
-		blackBoard.SetData<bool>("HasWeapon", false);		
-		blackBoard.SetData<float>("AnyOffset", anyOffset);
+		blackBoard.SetData<bool>(StringNames.Bool_HasWeapon, false);		
+		blackBoard.SetData<float>(StringNames.Float_GeneralOffset, generalOffset);
 
-		blackBoard.SetData<float>("DetectRadiusFar", detectRadiusFar);
-		blackBoard.SetData<float>("DetectRadiusNear", detectRadiusNear);
-		blackBoard.SetData<float>("SightAnglePoint", sightAnglePoint);
-		blackBoard.SetData<float>("SightAngleFull", sightAngleFull);
-		blackBoard.SetData<float>("CollectRange", collectRange);
+		blackBoard.SetData<float>(StringNames.Float_DetectRadiusFar, detectRadiusFar);
+		blackBoard.SetData<float>(StringNames.Float_DetectRadiusNear, detectRadiusNear);
+		blackBoard.SetData<float>(StringNames.Float_SightAnglePoint, sightAnglePoint);
+		blackBoard.SetData<float>(StringNames.Float_SightAngleFull, sightAngleFull);
+		blackBoard.SetData<float>(StringNames.Float_CollectRange, collectRange);
 
-		blackBoard.SetData<float>("ChaseRange", chaseRange);
-		blackBoard.SetData<float>("AttackRange", attackRange);
-		blackBoard.SetData<float>("AttackStrength", attackStrength);
+		blackBoard.SetData<float>(StringNames.Float_ChaseRange, chaseRange);
+		blackBoard.SetData<float>(StringNames.Float_AttackRange, attackRange);
+		blackBoard.SetData<float>(StringNames.Float_AttackStrength, attackStrength);
 
-		blackBoard.SetData<Transform>("CurrentTarget", waypoints[GetNextWayPoint()]);
-	}
+		blackBoard.SetData<Transform>(StringNames.Transform_CurrentTarget, waypoints[GetNextWayPoint()]);
+        blackBoard.SetData<TMP_Text>(StringNames.text_StatusUiText, statusUiText);
+    }
 
 
 	private void SetTree() {
 		#region SetNodes
-		BtInRange inRangePlayer		= new BtInRange  (blackBoard, "Player", "ChaseRange");
-		BtAttack attackPlayer		= new BtAttack   (blackBoard, "Player");
-		BtMoveTo moveToPlayer		= new BtMoveTo   (blackBoard, "Player");
-		BtHasObject hasWeapon		= new BtHasObject(blackBoard, "Weapon");
+		BtInRange inRangePlayer		= new BtInRange  (blackBoard, StringNames.Transform_Player, StringNames.Float_ChaseRange);
+		BtAttack attackPlayer		= new BtAttack   (blackBoard, StringNames.Transform_Player);
+		BtMoveTo moveToPlayer		= new BtMoveTo   (blackBoard, StringNames.Transform_Player);
+		BtHasObject hasWeapon		= new BtHasObject(blackBoard, StringNames.Bool_HasWeapon);
 
-		BtInRange inRangeWeapon		= new BtInRange	 (blackBoard, "Weapon", "CollectRange");
-		BtCollect collectWeapon		= new BtCollect  (blackBoard, "Weapon");
-		BtMoveTo moveToWeapon		= new BtMoveTo   (blackBoard, "Weapon");
-		BtDetect detectWeapon		= new BtDetect   (blackBoard, "Weapon", "SightAngleFull");
+		BtInRange inRangeWeapon		= new BtInRange	 (blackBoard, StringNames.Transform_Item_Weapon, StringNames.Float_CollectRange);
+		BtCollect collectWeapon		= new BtCollect  (blackBoard, StringNames.Transform_Item_Weapon);
+		BtMoveTo moveToWeapon		= new BtMoveTo   (blackBoard, StringNames.Transform_Item_Weapon);
+		BtDetect detectWeapon		= new BtDetect   (blackBoard, StringNames.Tag_Item_Weapon, StringNames.Float_SightAngleFull);
 
-		BtInRange inRangeWaypoint	= new BtInRange	 (blackBoard, waypoints[wayPointId], "AnyOffset");
+		BtInRange inRangeWaypoint	= new BtInRange	 (blackBoard, waypoints[wayPointId], StringNames.Float_GeneralOffset);
 		BtMoveTo moveToWaypoint		= new BtMoveTo	 (blackBoard, waypoints[wayPointId]);
 
-		BtDetect detectPlayer		= new BtDetect   (blackBoard, "Player", "SightAnglePoint");
+		BtDetect detectPlayer		= new BtDetect   (blackBoard, StringNames.Tag_Player, StringNames.Float_SightAnglePoint);
 		#endregion
 
 		#region Combat
 		BtSequence sqCombatAttack = new BtSequence(
-				new BtDebug("Debug: sqCombatAttack"),
+				new BtDebug("GuardAI Debug: sqCombatAttack", "red"),
 				inRangePlayer,
 				attackPlayer
 			);
 
 		BtSequence sqMoveToCombat = new BtSequence(
-				new BtDebug("Debug: sqMoveToCombat"),
+				new BtDebug("GuardAI Debug: sqMoveToCombat", "red"),
 				moveToPlayer,
 				attackPlayer
 			);
 
 		BtSelector slStartCombat = new BtSelector(
-				sqCombatAttack,
+				new BtStatusUI(blackBoard, "ATTACK!!!"),
+                sqCombatAttack,
 				sqMoveToCombat
 			);
 
@@ -110,28 +118,29 @@ public class GuardAI : MonoBehaviour {
 		#endregion
 		#region Find Weapon
 		BtSequence sqCollectWeapon = new BtSequence(
-				new BtDebug("Debug: sqCollectWeapon"),
+				new BtDebug("GuardAI Debug: sqCollectWeapon", "red"),
 				inRangeWeapon,
 				collectWeapon,
 				slStartCombat
 			);
 
 		BtSequence sqMoveToWeapon = new BtSequence(
-				new BtDebug("Debug: sqMoveToWeapon"),
+				new BtDebug("GuardAI Debug: sqMoveToWeapon", "red"),
 				moveToWeapon,
 				collectWeapon,
 				slStartCombat
 			);
 
 
-		BtSelector slObtainWeapon = new BtSelector(
-				sqCollectWeapon,
+		BtSelector slObtainWeapon = new BtSelector(				
+                sqCollectWeapon,
 				sqMoveToWeapon
 			);
 
 		BtSequence sqFindWeapon = new BtSequence(
-				detectWeapon,
-				slObtainWeapon
+				new BtStatusUI(blackBoard, "GetWeapon"),
+                //detectWeapon, //disabled cause pre assigned
+                slObtainWeapon
 			);
 		#endregion
 
@@ -142,14 +151,16 @@ public class GuardAI : MonoBehaviour {
 
 		#region Patrol
 		BtSequence sqPatrol = new BtSequence(
-				new BtDebug("Debug: sqPatrol"),
-				new BtInverter(inRangeWaypoint),
-				moveToWaypoint
-			);
+				new BtDebug("GuardAI Debug: sqPatrol", "red"), 
+				new BtStatusUI(blackBoard, "Patrol"),
+                new BtInverter(inRangeWaypoint),
+                moveToWaypoint,
+                new BtWait(1f)
+            );
 		#endregion
 
 		BtSequence sqDetectIntruder = new BtSequence(
-				new BtDebug("Debug: sqDetectIntruder"),
+				new BtDebug("GuardAI Debug: sqDetectIntruder", "red"),
 				detectPlayer,
 				slStartOffense
 			);
@@ -169,7 +180,7 @@ public class GuardAI : MonoBehaviour {
 				GetNextWayPoint();
 				SetTree();
 			}
-		}
+        }
 	}
 
 	int GetNextWayPoint() {

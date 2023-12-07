@@ -3,23 +3,27 @@ using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
+using static UnityEngine.GraphicsBuffer;
 
 public class BtAttack : BtNode {
 	private Blackboard blackboard;
-	private Transform target;
+	private string targetString;
 
-	public BtAttack(Blackboard _blackBoard, string _target) {
-		blackboard = _blackBoard;
-		target = blackboard.GetData<Transform>(_target);
-	}
+	public BtAttack(Blackboard _blackboard, string _target) {
+		blackboard = _blackboard;
+        targetString = _target;
+    }
 
 	public override BtResult Run() {
-		if(true) {
+        Transform target = blackboard.GetData<Transform>(targetString);
+
+        if (true) {
 			//attack target
-			//return BtResult.running;
+			Debug.Log($"Attacking {target.name}");
+			return BtResult.running;
 		//} else if (){
 			//when target dead 
-			return BtResult.success;
+			//return BtResult.success;
 		} else {
 			//when target is lost/far
 			return BtResult.failed;

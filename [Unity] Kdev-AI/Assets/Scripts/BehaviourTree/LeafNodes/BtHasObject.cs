@@ -1,16 +1,19 @@
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 
 public class BtHasObject : BtNode {
-	private bool hasObject;
+	private Blackboard blackboard;
+	private string objectType;
 
-	public BtHasObject(Blackboard blackBoard, string _object) {
-		hasObject = blackBoard.GetData<bool>($"Has{_object}");
+	public BtHasObject(Blackboard _blackboard, string _hasObject) {
+		blackboard = _blackboard;
+		objectType = _hasObject;
 	}
 
 	public override BtResult Run() {
-		if(hasObject) {
+		if(blackboard.GetData<bool>(objectType)) {
 			return BtResult.success;
 		} else {
 			return BtResult.failed;
