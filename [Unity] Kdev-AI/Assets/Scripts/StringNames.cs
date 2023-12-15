@@ -26,10 +26,11 @@ public class StringNames {
 
     public const string Float_AttackRange = "Float_AttackRange";
     public const string Float_AttackStrength = "Float_AttackStrength";
-    #endregion
+    public const string Float_AttackCooldown = "Float_AttackCooldown";
+	#endregion
 
-    #region Bools
-    public const string Bool_HasWeapon = "Bool_HasWeapon";
+	#region Bools
+	public const string Bool_HasWeapon = "Bool_HasWeapon";
     #endregion
 
     #region Tags

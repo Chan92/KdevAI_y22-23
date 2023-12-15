@@ -42,6 +42,11 @@ public class BtDetect : BtNode {
 		Vector3 direction = obj.position - target.position;
 		float angle = Vector3.Angle(obj.forward, direction);
 
+		//cant detect if agent is blinded
+		if(CheckBlindingEffects()) {
+			return false;
+		}
+
 		RaycastHit hit;
 		if(Physics.Linecast(obj.position, target.position, out hit)) {		
 
@@ -55,6 +60,20 @@ public class BtDetect : BtNode {
 				} 
 			}
 		} 
+
+		return false;
+	}
+
+	//effects that blinds
+	private bool CheckBlindingEffects() {
+		StatusEffects se = obj.GetComponent<StatusEffects>();
+		if(!se) {
+			return false;
+		}
+
+		if(se.HasEffect(StatusEffects.Effects.InSmoke)) {
+			return true;
+		}
 
 		return false;
 	}

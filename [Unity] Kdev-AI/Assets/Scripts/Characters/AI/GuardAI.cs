@@ -29,11 +29,15 @@ public class GuardAI : MonoBehaviour {
 
 	[Header("Combat")]
 	[SerializeField]
+	private SoAttack attack;
+	[SerializeField]
 	private float chaseRange = 10f;
 	[SerializeField]
 	private float attackRange = 3f;
 	[SerializeField]
 	private float attackStrength = 10f;
+	[SerializeField]
+	private float attackCooldown = 0.7f;
 
 	[Header("Other")]
 	[SerializeField]
@@ -55,7 +59,7 @@ public class GuardAI : MonoBehaviour {
 		blackBoard.SetData<Transform>(StringNames.Transform_Player, player);
 		blackBoard.SetData<Transform>(StringNames.Transform_Item_Weapon, weapon);
 
-		blackBoard.SetData<bool>(StringNames.Bool_HasWeapon, false);		
+		blackBoard.SetData<bool>(StringNames.Bool_HasWeapon, false);
 		blackBoard.SetData<float>(StringNames.Float_GeneralOffset, generalOffset);
 
 		blackBoard.SetData<float>(StringNames.Float_DetectRadiusFar, detectRadiusFar);
@@ -67,16 +71,16 @@ public class GuardAI : MonoBehaviour {
 		blackBoard.SetData<float>(StringNames.Float_ChaseRange, chaseRange);
 		blackBoard.SetData<float>(StringNames.Float_AttackRange, attackRange);
 		blackBoard.SetData<float>(StringNames.Float_AttackStrength, attackStrength);
+		blackBoard.SetData<float>(StringNames.Float_AttackCooldown, attackCooldown);
 
 		blackBoard.SetData<Transform>(StringNames.Transform_CurrentTarget, waypoints[GetNextWayPoint()]);
         blackBoard.SetData<TMP_Text>(StringNames.text_StatusUiText, statusUiText);
     }
 
-
 	private void SetTree() {
 		#region SetNodes
 		BtInRange inRangePlayer		= new BtInRange  (blackBoard, StringNames.Transform_Player, StringNames.Float_ChaseRange);
-		BtAttack attackPlayer		= new BtAttack   (blackBoard, StringNames.Transform_Player);
+		BtAttack attackPlayer		= new BtAttack   (blackBoard, StringNames.Transform_Player, attack);
 		BtMoveTo moveToPlayer		= new BtMoveTo   (blackBoard, StringNames.Transform_Player);
 		BtHasObject hasWeapon		= new BtHasObject(blackBoard, StringNames.Bool_HasWeapon);
 
@@ -89,33 +93,41 @@ public class GuardAI : MonoBehaviour {
 		BtMoveTo moveToWaypoint		= new BtMoveTo	 (blackBoard, waypoints[wayPointId]);
 
 		BtDetect detectPlayer		= new BtDetect   (blackBoard, StringNames.Tag_Player, StringNames.Float_SightAnglePoint);
+		
+		BtChangeStatusEffect addAggroStatus		= new BtChangeStatusEffect(blackBoard, StatusEffects.Effects.Aggro, true);
+		BtChangeStatusEffect removeAggroStatus	= new BtChangeStatusEffect(blackBoard, StatusEffects.Effects.Aggro, false);
 		#endregion
 
 		#region Combat
+		BtSequence sqAttackPlayer = new BtSequence(
+				new BtStatusUI(blackBoard, "ATTACK!!!"),
+				attackPlayer
+			);
+
 		BtSequence sqCombatAttack = new BtSequence(
 				new BtDebug("GuardAI Debug: sqCombatAttack", "red"),
 				inRangePlayer,
-				attackPlayer
+				sqAttackPlayer
 			);
 
 		BtSequence sqMoveToCombat = new BtSequence(
 				new BtDebug("GuardAI Debug: sqMoveToCombat", "red"),
+				new BtStatusUI(blackBoard, "ChaseTarget"),
 				moveToPlayer,
-				attackPlayer
+				sqAttackPlayer
 			);
 
-		BtSelector slStartCombat = new BtSelector(
-				new BtStatusUI(blackBoard, "ATTACK!!!"),
+		BtSelector slStartCombat = new BtSelector(			
                 sqCombatAttack,
 				sqMoveToCombat
 			);
 
 		BtSequence sqCheckCombat = new BtSequence(
-				hasWeapon,
+				hasWeapon,				
 				slStartCombat
 			);
-
 		#endregion
+
 		#region Find Weapon
 		BtSequence sqCollectWeapon = new BtSequence(
 				new BtDebug("GuardAI Debug: sqCollectWeapon", "red"),
@@ -151,7 +163,8 @@ public class GuardAI : MonoBehaviour {
 
 		#region Patrol
 		BtSequence sqPatrol = new BtSequence(
-				new BtDebug("GuardAI Debug: sqPatrol", "red"), 
+				new BtDebug("GuardAI Debug: sqPatrol", "red"),
+				removeAggroStatus,
 				new BtStatusUI(blackBoard, "Patrol"),
                 new BtInverter(inRangeWaypoint),
                 moveToWaypoint,
@@ -162,6 +175,7 @@ public class GuardAI : MonoBehaviour {
 		BtSequence sqDetectIntruder = new BtSequence(
 				new BtDebug("GuardAI Debug: sqDetectIntruder", "red"),
 				detectPlayer,
+				addAggroStatus,
 				slStartOffense
 			);
 
@@ -180,7 +194,7 @@ public class GuardAI : MonoBehaviour {
 				GetNextWayPoint();
 				SetTree();
 			}
-        }
+        }	
 	}
 
 	int GetNextWayPoint() {

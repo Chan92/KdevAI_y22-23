@@ -8,13 +8,11 @@ using static UnityEngine.GraphicsBuffer;
 public class BtMoveTo : BtNode {
 	private NavMeshAgent agent;
 	private Transform target;
-	private float distanceOffset;
 
 	public BtMoveTo(Blackboard _blackboard, Transform _target) {
 		Transform obj = _blackboard.GetData<Transform>(StringNames.Transform_BBowner);
 		agent = obj.GetComponent<NavMeshAgent>();
 		target = _target;
-		distanceOffset = _blackboard.GetData<float>(StringNames.Float_GeneralOffset);
 		//Debug.Log($"Move to target:{target.name} ({target})");
 	}
 
@@ -22,7 +20,6 @@ public class BtMoveTo : BtNode {
 		Transform obj = _blackboard.GetData<Transform>(StringNames.Transform_BBowner);
 		agent = obj.GetComponent<NavMeshAgent>();
 		target = _blackboard.GetData<Transform>(_targetName);
-		distanceOffset = _blackboard.GetData<float>(StringNames.Float_GeneralOffset);
         //Debug.Log($"Move to target:{target.name} ({target})");
     }
 
@@ -39,7 +36,7 @@ public class BtMoveTo : BtNode {
     }
 
 	public override BtResult Run() {
-		if(CalculateDistance() > distanceOffset) {
+		if(CalculateDistance() > agent.stoppingDistance) {
 			agent.isStopped = false;
 			agent.SetDestination(target.position);
 			return BtResult.running;

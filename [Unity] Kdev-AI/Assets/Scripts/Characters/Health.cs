@@ -7,8 +7,14 @@ public class Health : MonoBehaviour, IDamageable {
 	private float maxHealth = 100f;
 	private float currentHealth;
 
+	public bool Alive {
+		get;
+		private set;
+	}
+
 	private void Start() {
 		GetHealed(maxHealth);
+		Alive = true;
 	}
 
 	public void TakeDamage(float damage) {
@@ -16,7 +22,9 @@ public class Health : MonoBehaviour, IDamageable {
 
 		if (currentHealth < 0) {
 			currentHealth = 0;
+			Alive = false;
 			//TODO: add death
+			transform.gameObject.SetActive(false);
 		} 
 
 		//TODO: update UI
